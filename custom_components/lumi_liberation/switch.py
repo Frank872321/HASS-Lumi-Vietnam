@@ -22,7 +22,7 @@ class LumiSwitch(SwitchEntity):
         payload = {
             "cmd": "set",
             "control_source": {"id": "ha-dev", "type": "app"},
-            "objects": [{"data": [self._devid], "execution": {"command": "OnOff", "params": {"on": True}}, "type":"devices"}],
+            "objects": [{"data": [self._devid], "execution": {"command": "OnOff", "params": {"on": "true"}}, "type":"devices"}],
             "reqid": "ha-dev",
             "source":"core",
             "timestamp": 0,
