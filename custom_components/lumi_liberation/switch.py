@@ -40,19 +40,23 @@ async def async_setup_entry(hass, entry, async_add_entities):
         
         # Add it to HA
         async_add_entities([new_switch], True)
-    # 2. LOAD EXISTING DEVICES from registry on restart
-    er = async_get(hass)
-    
-    # Get all entities that belong to this config entry
-    entities = [
-        entry for entry in er.entities.values() 
-        if entry.config_entry_id == entry.entry_id
-    ]
-    
-    # Tell them to exist
-    for entity in entities:
-        # Re-instantiate based on the unique_id we stored
-        add_new_switch(entity.unique_id.replace("lumi_switch_", ""))
+        registry = er.async_get(hass)
+        entities_to_add = []
+        
+        # This function automatically filters for ONLY entities belonging to THIS config entry
+        for entity_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
+            # Since these are already filtered, you can trust they belong to this hub!
+            
+            # We need to extract the hash. 
+            # If your unique_id is "lumi_switch_{dev_hash}", this works:
+            dev_hash = entity_entry.unique_id.replace("lumi_switch_", "")
+            
+            # Instantiate your switch
+            new_switch = LumiSwitch(hass, entity_entry.original_name, dev_hash)
+            entities_to_add.append(new_switch)
+        
+        if entities_to_add:
+        async_add_entities(entities_to_add, True)
 class LumiSwitch(SwitchEntity):
     def __init__(self, hass, name, devid):
         self.hass = hass
