@@ -8,39 +8,6 @@ from homeassistant.helpers.entity_registry import async_get, async_entries_for_c
 import homeassistant.helpers.entity_registry 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the switch platform."""
-    # 1. Look up all entities that are already registered to this integration
-    # Use a helper to ensure the registry is ready
-    registry = async_get(hass)
-    # 1. ADD EXISTING DEVICES
-    # Get all entries for this specific config entry
-    entities_to_add = []
-    for entity_entry in async_entries_for_config_entry(registry, entry.entry_id):
-        # We need the unique_id back to extract the hash
-        # Assuming unique_id is: "lumi_switch_{dev_hash}"
-        dev_hash = entity_entry.unique_id.replace("lumi_switch_", "")
-        
-        # Instantiate your switch
-        new_switch = LumiSwitch(hass, entity_entry.original_name, dev_hash)
-        entities_to_add.append(new_switch)
-    
-    if entities_to_add:
-        async_add_entities(entities_to_add, True)
-
-    # 2. DISPATCHER FOR NEW DEVICES
-    @callback
-    def add_new_switch(data):
-        # If data is a tuple like ('hash_string',), dev_hash becomes the first item
-        # If data is just a string, dev_hash becomes the string itself
-        dev_hash = data[0] if isinstance(data, (list, tuple)) else data
-        
-        # Now dev_hash is defined in this scope, so this won't crash
-        name = f"Lumi Switch {dev_hash}"
-        
-        # Create the entity
-        new_switch = LumiSwitch(hass, name, dev_hash)
-        
-        # Add it to HA
-        async_add_entities([new_switch], True)
     registry = async_get(hass)
     entities_to_add = []
     
@@ -58,6 +25,22 @@ async def async_setup_entry(hass, entry, async_add_entities):
     
     if entities_to_add:
         async_add_entities(entities_to_add, True)
+    # 2. DISPATCHER FOR NEW DEVICES
+    @callback
+    def add_new_switch(data):
+        # If data is a tuple like ('hash_string',), dev_hash becomes the first item
+        # If data is just a string, dev_hash becomes the string itself
+        dev_hash = data[0] if isinstance(data, (list, tuple)) else data
+        
+        # Now dev_hash is defined in this scope, so this won't crash
+        name = f"Lumi Switch {dev_hash}"
+        
+        # Create the entity
+        new_switch = LumiSwitch(hass, name, dev_hash)
+        
+        # Add it to HA
+        async_add_entities([new_switch], True)
+
 class LumiSwitch(SwitchEntity):
     def __init__(self, hass, name, devid):
         self.hass = hass
