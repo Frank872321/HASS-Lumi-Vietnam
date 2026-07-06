@@ -5,8 +5,8 @@ from .const import DOMAIN
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Get the data the user typed in the form
-    host = entry.data["host"]
-    port = entry.data["port"]
+    host = entry.data["Host"]
+    port = entry.data["Port"]
     
     # Store it in hass.data so other files can see it
     hass.data.setdefault(DOMAIN, {})
