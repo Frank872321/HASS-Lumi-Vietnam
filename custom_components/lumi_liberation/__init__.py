@@ -1,11 +1,10 @@
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
-from .const import DOMAIN
+from .const import DOMAIN, DISCOVERY_SIGNAL
 import json
 import logging
 from homeassistant.components import mqtt
 from homeassistant.helpers.dispatcher import dispatcher_send
-from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # 1. Setup Data
@@ -16,21 +15,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def status_message_received(msg):
         try:
             payload = json.loads(msg.payload)
+            registry = er.async_get(hass)
+            
             for obj in payload.get("objects", []):
                 for device in obj.get("data", []):
                     dev_hash = device.get("hash")
                     state = device.get("states", {}).get("OnOff", {}).get("on")
                     
-                    if dev_hash:
-                        # NEW: If the entity doesn't exist, we need to add it 
-                        # This triggers your 'add_new_switch' function in switch.py
-                        if not hass.data[DOMAIN].get(dev_hash):
-                            hass.data[DOMAIN][dev_hash] = True
-                            dispatcher_send(hass, DISCOVERY_SIGNAL, dev_hash)
-                        
-                        # Handle state update
-                        if state is not None:
-                            dispatcher_send(hass, f"{DOMAIN}_state_update_{dev_hash}", state)
+                    if not dev_hash:
+                        continue
+
+                    # 1. DISCOVERY LOGIC: Check if we have seen this switch before
+                    # We search for an entity with the unique_id: "lumi_switch_{dev_hash}"
+                    entity_id = registry.async_get_entity_id("switch", DOMAIN, f"lumi_switch_{dev_hash}")
+                    
+                    if entity_id is None:
+                        # It's a new device! Signal switch.py to create it.
+                        _LOGGER.info(f"Discovered new device: {dev_hash}")
+                        dispatcher_send(hass, DISCOVERY_SIGNAL, dev_hash)
+                    
+                    # 2. STATE LOGIC: Always update the state if we have it
+                    if state is not None:
+                        dispatcher_send(hass, f"{DOMAIN}_state_update_{dev_hash}", state)                       
         except Exception as e:
             _LOGGER.error(f"Error parsing status: {e}")
 
