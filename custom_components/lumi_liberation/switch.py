@@ -42,6 +42,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         if entity.unique_id and entity.unique_id.startswith("lumi_switch_"):
             dev_hash = entity.unique_id.replace("lumi_switch_", "")
             add_new_switch(dev_hash)
+    return True
 class LumiSwitch(SwitchEntity):
     def __init__(self, hass, name, devid):
         self.hass = hass
