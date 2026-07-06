@@ -28,15 +28,15 @@ async def async_setup_entry(hass, entry, async_add_entities):
     # 2. DISPATCHER FOR NEW DEVICES
     @callback
     def add_new_switch(data):
-        # Data is {"hash": dev_hash, "name": dev_name}
+        # data is likely ('hash_string',)
+        # So we grab the first element of the tuple
+        dev_hash = data[0] if isinstance(data, (list, tuple)) else data
+        
+        # Now create the switch
         name = f"Lumi Switch {dev_hash}"
-    
-    # Now you pass the variables directly, not as a dictionary
-        if data["name"] is None:
-            new_switch = LumiSwitch(hass, name, data["hash"])
-            async_add_entities([new_switch], True)
-
-    async_dispatcher_connect(hass, DISCOVERY_SIGNAL, add_new_switch)
+        new_switch = LumiSwitch(hass, name, dev_hash)
+        async_add_entities([new_switch], True)
+        async_dispatcher_connect(hass, DISCOVERY_SIGNAL, add_new_switch)
 
     # 2. LOAD EXISTING DEVICES from registry on restart
     from homeassistant.helpers import entity_registry
