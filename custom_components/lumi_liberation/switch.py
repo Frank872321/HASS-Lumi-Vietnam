@@ -41,8 +41,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         # Add it to HA
         async_add_entities([new_switch], True)
     # 2. LOAD EXISTING DEVICES from registry on restart
-    from homeassistant.helpers import entity_registry
-    er = entity_registry.async_get(hass)
+    er = async_get(hass)
     
     # Get all entities that belong to this config entry
     entities = [
