@@ -1,8 +1,12 @@
 import voluptuous as vol
-from homeassistant import config_entries
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlowm,
+    ConfigFlowResult,
+    OptionsFlow,
+)
 from .const import DOMAIN
-@config_entries.config_flow_handler(DOMAIN)
-class LumiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class LumiConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, info):
         if info is not None:
             pass  # TODO: process info
