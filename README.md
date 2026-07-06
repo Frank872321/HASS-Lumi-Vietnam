@@ -42,6 +42,7 @@ You can also add code to help me :)
 ---
 ## How do I use this integration?
 You can follow these steps:
+0. Install MQTT and set it up to point to the Lumi HC
 1. Download HACS into your Home Assistant system, if you haven't done that
 2. Open the HACS menu, click the 3-dot symbol and choose the "Custom repositories" option.
 3. Paste in the following:
