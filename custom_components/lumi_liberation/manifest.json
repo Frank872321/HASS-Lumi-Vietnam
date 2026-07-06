@@ -1,0 +1,10 @@
+{
+  "domain": "lumi_liberation",
+  "name": "Lumi",
+  "version": "0.1.0",
+  "documentation": "",
+  "issue_tracker": "",
+  "dependencies": ["mqtt"],
+  "codeowners": ["@YOUR_GITHUB_USERNAME"],
+  "integration_type": "hub"
+}
