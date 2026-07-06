@@ -5,6 +5,7 @@ from .const import DOMAIN, DISCOVERY_SIGNAL
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers import entity_registry as er
+_LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the switch platform."""
     registry = er.async_get(hass)
@@ -97,5 +98,6 @@ class LumiSwitch(SwitchEntity):
     @callback
     def _handle_state_update(self, new_state):
         """Update state when the central dispatcher signals us."""
+        _LOGGER.info(f"DEBUG: Switch {self._devid} received update: {new_state}")
         self._attr_is_on = bool(new_state)
         self.async_write_ha_state()
