@@ -1,7 +1,7 @@
 import json
 from homeassistant.components import mqtt
 from homeassistant.components.switch import SwitchEntity
-from . import DOMAIN, DISCOVERY_SIGNAL
+from .const import DOMAIN, DISCOVERY_SIGNAL
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 async def async_setup_entry(hass, entry, async_add_entities):
