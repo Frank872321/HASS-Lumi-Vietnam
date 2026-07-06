@@ -6,7 +6,20 @@ from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the switch platform."""
-
+    registry = er.async_get(hass)
+    
+    # Get all entities already registered to this integration
+    stored_entities = er.async_entries_for_config_entry(registry, entry.entry_id)
+    
+    entities_to_add = []
+    for ent in stored_entities:
+        # Re-instantiate your switch object from the stored data
+        # This brings the entity "alive" in HA immediately on boot
+        new_switch = LumiSwitch(hass, ent.original_name, ent.unique_id.split('_')[-1])
+        entities_to_add.append(new_switch)
+        
+    if entities_to_add:
+        async_add_entities(entities_to_add, True)
     @callback
     def add_new_switch(dev_hash):
         # We define a helper to instantiate the class
@@ -87,3 +100,4 @@ class LumiSwitch(SwitchEntity):
     def _handle_state_update(self, new_state):
         """Update state when the central dispatcher signals us."""
         self._attr_is_on = new_state
+        self.async_write_ha_state()
