@@ -48,22 +48,3 @@ class LumiSwitch(SwitchEntity):
         
         self._attr_is_on = False
         self.async_write_ha_state()
-    async def async_added_to_hass(self):
-        """Run when entity is added to Home Assistant."""
-        # This connects this SPECIFIC instance to the signal 
-        # that corresponds exactly to its own devid
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass, 
-                f"{DOMAIN}_update_{self._devid}", 
-                self._handle_state_update
-            )
-        )
-
-    @callback
-    def _handle_state_update(self, state_data):
-        """Triggered automatically when the specific devid appears in MQTT."""
-        # Update your internal state
-        self._attr_is_on = state_data.get("on", False)
-        # Tell Home Assistant to refresh the UI
-        self.async_write_ha_state()
