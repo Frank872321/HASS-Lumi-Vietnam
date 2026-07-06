@@ -56,8 +56,7 @@ class LumiSwitch(SwitchEntity):
             )
         )
 
-    @callback
-    def _handle_state_update(self, state_data):
+    async def _handle_state_update(self, state_data):
         """Triggered automatically when the specific devid appears in MQTT."""
         # Update your internal state
         self._attr_is_on = state_data.get("on", False)
