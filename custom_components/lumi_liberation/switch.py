@@ -4,6 +4,7 @@ from homeassistant.components.switch import SwitchEntity
 from .const import DOMAIN, DISCOVERY_SIGNAL
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers import entity_registry as er
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the switch platform."""
     # 1. Look up all entities that are already registered to this integration
