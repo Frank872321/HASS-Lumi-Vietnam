@@ -22,15 +22,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 for device in obj.get("data", []):
                     dev_hash = device.get("hash")
                     state = device.get("states", {}).get("OnOff", {}).get("on")
-                    
                     if not dev_hash:
                         continue
 
                     # 1. DISCOVERY LOGIC: Check if we have seen this switch before
                     # We search for an entity with the unique_id: "lumi_switch_{dev_hash}"
-                    entity_id = registry.async_get_entity_id("switch", DOMAIN, f"lumi_switch_{dev_hash}")
-                    
-                    if entity_id is None:
+                    unique_id = f"lumi_switch_{dev_hash}"
+
+                    # Check if this unique_id exists anywhere in the registry
+                    if registry.async_get_entity_id("switch", DOMAIN, unique_id) is None:
                         # It's a new device! Signal switch.py to create it.
                         _LOGGER.info(f"Discovered new device: {dev_hash}")
                         dispatcher_send(hass, DISCOVERY_SIGNAL, dev_hash)
