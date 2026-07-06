@@ -29,8 +29,12 @@ async def async_setup_entry(hass, entry, async_add_entities):
     @callback
     def add_new_switch(data):
         # Data is {"hash": dev_hash, "name": dev_name}
-        new_switch = LumiSwitch(hass, data["name"], data["hash"])
-        async_add_entities([new_switch], True)
+        name = f"Lumi Switch {dev_hash}"
+    
+    # Now you pass the variables directly, not as a dictionary
+        if data["name"] is None:
+            new_switch = LumiSwitch(hass, name, data["hash"])
+            async_add_entities([new_switch], True)
 
     async_dispatcher_connect(hass, DISCOVERY_SIGNAL, add_new_switch)
 
