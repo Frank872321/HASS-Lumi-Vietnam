@@ -97,5 +97,5 @@ class LumiSwitch(SwitchEntity):
     @callback
     def _handle_state_update(self, new_state):
         """Update state when the central dispatcher signals us."""
-        self._attr_is_on = new_state
+        self._attr_is_on = bool(new_state)
         self.async_write_ha_state()
