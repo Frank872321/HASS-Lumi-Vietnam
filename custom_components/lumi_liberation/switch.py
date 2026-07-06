@@ -22,7 +22,10 @@ class LumiSwitch(SwitchEntity):
         payload = {
             "cmd": "set",
             "control_source": {"id": "ha-dev", "type": "app"},
-            "objects": [{"data": [self._devid], "execution": {"command": "OnOff", "params": {"on": True}}}]
+            "objects": [{"data": [self._devid], "execution": {"command": "OnOff", "params": {"on": True}}, "type":"devices"}],
+            "reqid": "ha-dev",
+            "source":"core",
+            "timestamp": 0,
         }
         await mqtt.async_publish(self.hass, "component/hc-zb/control", json.dumps(payload))
         self._attr_is_on = True
