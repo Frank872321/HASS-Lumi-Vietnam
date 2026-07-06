@@ -1,3 +1,4 @@
+from homeassistant.components import mqtt
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from .const import DOMAIN
@@ -5,7 +6,6 @@ from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect, 
     dispatcher_send
 )
-from homeassistant.components import mqtt
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Get the data the user typed in the form
