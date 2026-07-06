@@ -34,10 +34,21 @@ class LumiSwitch(SwitchEntity):
     def __init__(self, hass, name, devid):
         self.hass = hass
         self._attr_name = name
-        self._attr_unique_id = f"lumi_switch_{devid}"
+        # IMPORTANT: This unique_id must NEVER change or you'll get duplicate entities
+        self._attr_unique_id = f"lumi_switch_{devid}" 
         self._devid = devid
         self._attr_is_on = False
-
+        
+    @property
+    def device_info(self):
+        """Link to parent device (The Hub Box)"""
+        # Split MAC from the endpoint ID
+        mac = "-".join(self._devid.split("-")[:-1])
+        return {
+            "identifiers": {(DOMAIN, mac)},
+            "name": f"Lumi Hub {mac[-4:]}",
+            "manufacturer": "Lumi",
+        }
     async def async_turn_on(self, **kwargs):
         # Your reverse-engineered command payload
         payload = {
