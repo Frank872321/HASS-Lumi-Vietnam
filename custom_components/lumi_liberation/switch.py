@@ -2,6 +2,7 @@ import json
 from homeassistant.components import mqtt
 from homeassistant.components.switch import SwitchEntity
 from .const import DOMAIN, DISCOVERY_SIGNAL
+import logging
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers import entity_registry as er
