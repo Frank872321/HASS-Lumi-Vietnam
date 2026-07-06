@@ -13,7 +13,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
         new_switch = LumiSwitch(hass, f"Lumi Switch {dev_hash}", dev_hash)
         async_add_entities([new_switch], True)
 
-    # 1. Listen for NEW devices discovered during runtime
     async_dispatcher_connect(hass, DISCOVERY_SIGNAL, add_new_switch)
 
     # 2. LOAD EXISTING DEVICES from registry on restart
@@ -34,7 +33,6 @@ class LumiSwitch(SwitchEntity):
     def __init__(self, hass, name, devid):
         self.hass = hass
         self._attr_name = name
-        # IMPORTANT: This unique_id must NEVER change or you'll get duplicate entities
         self._attr_unique_id = f"lumi_switch_{devid}" 
         self._devid = devid
         self._attr_is_on = False

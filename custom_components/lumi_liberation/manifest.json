@@ -6,7 +6,7 @@
   "documentation": "",
   "issue_tracker": "",
   "dependencies": ["mqtt"],
-  "codeowners": ["@YOUR_GITHUB_USERNAME"],
+  "codeowners": ["@Frank872321"],
   "integration_type": "hub",
   "iot_class": "local_polling"
 }
