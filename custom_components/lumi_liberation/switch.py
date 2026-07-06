@@ -2,7 +2,8 @@ import json
 from homeassistant.components import mqtt
 from homeassistant.components.switch import SwitchEntity
 from . import DOMAIN
-
+from homeassistant.core import callback
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 async def async_setup_entry(hass, config_entry, async_add_entities):
     # Here you pass your hardcoded list of switches
     async_add_entities([
@@ -41,3 +42,18 @@ class LumiSwitch(SwitchEntity):
         }
         await mqtt.async_publish(self.hass, "component/hc-zb/control", json.dumps(payload))
         self._attr_is_on = False
+    async def async_added_to_hass(self):
+        # Register the listener for the specific signal: {DOMAIN}_state_update_{zigbee-84...}
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass, 
+                f"{DOMAIN}_state_update_{self._devid}", 
+                self._handle_state_update
+            )
+        )
+
+    @callback
+    def _handle_state_update(self, new_state):
+        """Update state when the central dispatcher signals us."""
+        self._attr_is_on = new_state
+        self.async_write_ha_state()
