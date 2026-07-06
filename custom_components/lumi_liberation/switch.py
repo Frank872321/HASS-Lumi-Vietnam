@@ -34,15 +34,13 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     # Get all entities that belong to this config entry
     er_value = er.async_get(hass)
-    entities = [
-        entry for entry in er_value.entities.values() 
-        if entry.config_entry_id == entry.entry_id
-    ]
+    stored_entries = er.async_entries_for_config_entry(er_value, entry.entry_id)
 
     # Tell them to exist
-    for entity in entities:
-        # Re-instantiate based on the unique_id we stored
-        add_new_switch(entity.unique_id.replace("lumi_switch_", ""))
+    for entity in stored_entities:
+        if entity.unique_id and entity.unique_id.startswith("lumi_switch_"):
+            dev_hash = entity.unique_id.replace("lumi_switch_", "")
+            add_new_switch(dev_hash)
 class LumiSwitch(SwitchEntity):
     def __init__(self, hass, name, devid):
         self.hass = hass
