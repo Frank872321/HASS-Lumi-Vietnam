@@ -4,7 +4,6 @@ from homeassistant.components.switch import SwitchEntity
 from .const import DOMAIN, DISCOVERY_SIGNAL
 from homeassistant.core import callback, HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_registry import async_get, async_entries_for_config_entry
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the switch platform."""
@@ -14,7 +13,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     # 1. ADD EXISTING DEVICES
     # Get all entries for this specific config entry
     entities_to_add = []
-    for entity_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
+    for entity_entry in async_entries_for_config_entry(registry, entry.entry_id):
         # We need the unique_id back to extract the hash
         # Assuming unique_id is: "lumi_switch_{dev_hash}"
         dev_hash = entity_entry.unique_id.replace("lumi_switch_", "")
