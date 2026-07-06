@@ -5,6 +5,7 @@ from .const import DOMAIN, DISCOVERY_SIGNAL
 from homeassistant.core import callback, HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_registry import async_get, async_entries_for_config_entry
+import homeasssistant.helpers.entity_registry 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the switch platform."""
     # 1. Look up all entities that are already registered to this integration
@@ -40,23 +41,23 @@ async def async_setup_entry(hass, entry, async_add_entities):
         
         # Add it to HA
         async_add_entities([new_switch], True)
-        registry = er.async_get(hass)
-        entities_to_add = []
+    registry = async_get(hass)
+    entities_to_add = []
+    
+    # This function automatically filters for ONLY entities belonging to THIS config entry
+    for entity_entry in async_entries_for_config_entry(registry, entry.entry_id):
+        # Since these are already filtered, you can trust they belong to this hub!
         
-        # This function automatically filters for ONLY entities belonging to THIS config entry
-        for entity_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
-            # Since these are already filtered, you can trust they belong to this hub!
-            
-            # We need to extract the hash. 
-            # If your unique_id is "lumi_switch_{dev_hash}", this works:
-            dev_hash = entity_entry.unique_id.replace("lumi_switch_", "")
-            
-            # Instantiate your switch
-            new_switch = LumiSwitch(hass, entity_entry.original_name, dev_hash)
-            entities_to_add.append(new_switch)
+        # We need to extract the hash. 
+        # If your unique_id is "lumi_switch_{dev_hash}", this works:
+        dev_hash = entity_entry.unique_id.replace("lumi_switch_", "")
         
-        if entities_to_add:
-            async_add_entities(entities_to_add, True)
+        # Instantiate your switch
+        new_switch = LumiSwitch(hass, entity_entry.original_name, dev_hash)
+        entities_to_add.append(new_switch)
+    
+    if entities_to_add:
+        async_add_entities(entities_to_add, True)
 class LumiSwitch(SwitchEntity):
     def __init__(self, hass, name, devid):
         self.hass = hass
