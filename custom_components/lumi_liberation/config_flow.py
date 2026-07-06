@@ -12,5 +12,5 @@ class LumiConfigFlow(ConfigFlow, domain=DOMAIN):
             pass  # TODO: process info
 
         return self.async_show_form(
-            step_id="user", data_schema=vol.Schema({vol.Required("host"): str, vol.Required("port"): int})
+            step_id="user", data_schema=vol.Schema({vol.Required("host"): str})
         )
