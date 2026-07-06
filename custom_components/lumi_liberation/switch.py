@@ -2,7 +2,11 @@ import json
 from homeassistant.components import mqtt
 from homeassistant.components.switch import SwitchEntity
 from . import DOMAIN
-
+from homeassistant.core import callback
+from homeassistant.helpers.dispatcher import (
+    async_dispatcher_connect, 
+    dispatcher_send
+)
 async def async_setup_entry(hass, config_entry, async_add_entities):
     # Here you pass your hardcoded list of switches
     async_add_entities([
@@ -56,7 +60,8 @@ class LumiSwitch(SwitchEntity):
             )
         )
 
-    async def _handle_state_update(self, state_data):
+    @callback
+    def _handle_state_update(self, state_data):
         """Triggered automatically when the specific devid appears in MQTT."""
         # Update your internal state
         self._attr_is_on = state_data.get("on", False)
