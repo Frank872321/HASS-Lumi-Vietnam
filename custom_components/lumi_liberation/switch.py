@@ -6,7 +6,24 @@ from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the switch platform."""
+    # 1. Look up all entities that are already registered to this integration
+    registry = er.async_get(hass)
     
+    # This gets all entities linked to this config entry
+    entities_to_add = []
+    
+    # 2. Re-create the objects for every device we already know
+    for entity_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
+        # We need the hash to restore the device
+        # Ensure your unique_id format in the registry matches this
+        dev_hash = entity_entry.unique_id.replace("lumi_switch_", "")
+        
+        # Re-initialize the switch object
+        entities_to_add.append(LumiSwitch(hass, entity_entry.original_name, dev_hash))
+    
+    # 3. Add them all at once
+    if entities_to_add:
+        async_add_entities(entities_to_add, True)
     @callback
     def add_new_switch(dev_hash):
         # We define a helper to instantiate the class
