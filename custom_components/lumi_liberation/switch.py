@@ -28,16 +28,18 @@ async def async_setup_entry(hass, entry, async_add_entities):
     # 2. DISPATCHER FOR NEW DEVICES
     @callback
     def add_new_switch(data):
-        # data is likely ('hash_string',)
-        # So we grab the first element of the tuple
+        # If data is a tuple like ('hash_string',), dev_hash becomes the first item
+        # If data is just a string, dev_hash becomes the string itself
         dev_hash = data[0] if isinstance(data, (list, tuple)) else data
         
-        # Now create the switch
+        # Now dev_hash is defined in this scope, so this won't crash
         name = f"Lumi Switch {dev_hash}"
+        
+        # Create the entity
         new_switch = LumiSwitch(hass, name, dev_hash)
+        
+        # Add it to HA
         async_add_entities([new_switch], True)
-        async_dispatcher_connect(hass, DISCOVERY_SIGNAL, add_new_switch)
-
     # 2. LOAD EXISTING DEVICES from registry on restart
     from homeassistant.helpers import entity_registry
     er = entity_registry.async_get(hass)
