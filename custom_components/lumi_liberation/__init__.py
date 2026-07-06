@@ -11,13 +11,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # 1. Setup Data
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {"host": entry.data["Host"], "port": entry.data["Port"]}
-    
+
     # 2. The Traffic Controller
     async def status_message_received(msg):
         try:
             payload = json.loads(msg.payload)
             registry = er.async_get(hass)
-            
+
             for obj in payload.get("objects", []):
                 for device in obj.get("data", []):
                     dev_hash = device.get("hash")
@@ -34,7 +34,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         # It's a new device! Signal switch.py to create it.
                         _LOGGER.info(f"Discovered new device: {dev_hash}")
                         dispatcher_send(hass, DISCOVERY_SIGNAL, dev_hash)
-                    
+
                     # 2. STATE LOGIC: Always update the state if we have it
                     if state is not None:
                         dispatcher_send(hass, f"{DOMAIN}_state_update_{dev_hash}", state)                       
@@ -43,7 +43,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # 3. Subscribe once
     await mqtt.async_subscribe(hass, "component/dnet-relay/in/status", status_message_received)
-    
+
     # 4. Single setup forward
     await hass.config_entries.async_forward_entry_setups(entry, ["switch"])
-    return True
