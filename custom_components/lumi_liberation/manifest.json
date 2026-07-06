@@ -6,5 +6,6 @@
   "issue_tracker": "",
   "dependencies": ["mqtt"],
   "codeowners": ["@YOUR_GITHUB_USERNAME"],
-  "integration_type": "hub"
+  "integration_type": "hub",
+  "config_flow": true
 }
