@@ -56,7 +56,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
             entities_to_add.append(new_switch)
         
         if entities_to_add:
-        async_add_entities(entities_to_add, True)
+            async_add_entities(entities_to_add, True)
 class LumiSwitch(SwitchEntity):
     def __init__(self, hass, name, devid):
         self.hass = hass
