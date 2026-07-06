@@ -4,8 +4,10 @@ from homeassistant.components.switch import SwitchEntity
 from .const import DOMAIN, DISCOVERY_SIGNAL
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers import entity_registry
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the switch platform."""
+    er = entity_registry.async_get(hass)
     registry = er.async_get(hass)
     
     # Get all entities already registered to this integration
@@ -30,8 +32,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_dispatcher_connect(hass, DISCOVERY_SIGNAL, add_new_switch)
 
     # 2. LOAD EXISTING DEVICES from registry on restart
-    from homeassistant.helpers import entity_registry
-    er = entity_registry.async_get(hass)
 
     # Get all entities that belong to this config entry
     entities = [
