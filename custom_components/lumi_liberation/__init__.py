@@ -5,6 +5,7 @@ import json
 import logging
 from homeassistant.components import mqtt
 from homeassistant.helpers.dispatcher import dispatcher_send
+from homeassistant.helpers import entity_registry as er
 _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # 1. Setup Data
