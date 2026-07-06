@@ -38,3 +38,21 @@ To add support to the integration, you can follow these steps:
 3. Open an issue and then paste the changes in
 
 You can also add code to help me :)
+
+---
+## How do I use this integration?
+You can follow these steps:
+1. Download HACS into your Home Assistant system, if you haven't done that
+2. Open the HACS menu, click the 3-dot symbol and choose the "Custom repositories" option.
+3. Paste in the following:
+    - Repository: ```https://github.com/Frank872321/HASS-Lumi-Vietnam```
+    - Category: select "Integration"
+4. Close the pop-up, you will see the Lumi integration. Install
+5. After installing, go into Settings > Devices & Services > Integrations > Add integration
+6. Search for the Lumi integration. Once you click on it, a pop-up will appear asking for your IP and Port
+7. Type in the HC's IP and MQTT port (Usually 1883)
+8. After that, go and interact with your devices via the app or physically. It will appear in the Devices list.
+## How do I delete this integration?
+It is the same as other custom integrations
+## DISCLAIMER
+This project is not an official app or service by Lumi Vietnam. This project is made by the community, and by using it, you agree that the author will **not** bear responsibility if any damage happen to your devices.
