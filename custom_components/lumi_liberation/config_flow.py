@@ -1,7 +1,7 @@
 import voluptuous as vol
 from homeassistant import config_entries
 from .const import DOMAIN
-
+@config_entries.config_flow_handler(DOMAIN)
 class LumiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Lumi Liberation."""
     VERSION = 1
