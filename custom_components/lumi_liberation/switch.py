@@ -2,33 +2,35 @@ import json
 from homeassistant.components import mqtt
 from homeassistant.components.switch import SwitchEntity
 from .const import DOMAIN, DISCOVERY_SIGNAL
-from homeassistant.core import callback
+from homeassistant.core import callback, HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers import entity_registry as er
-async def async_setup_entry(hass, entry, async_add_entities, er):
+async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the switch platform."""
     # 1. Look up all entities that are already registered to this integration
+    # Use a helper to ensure the registry is ready
     registry = er.async_get(hass)
     
-    # This gets all entities linked to this config entry
+    # 1. ADD EXISTING DEVICES
+    # Get all entries for this specific config entry
     entities_to_add = []
-    
-    # 2. Re-create the objects for every device we already know
     for entity_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
-        # We need the hash to restore the device
-        # Ensure your unique_id format in the registry matches this
+        # We need the unique_id back to extract the hash
+        # Assuming unique_id is: "lumi_switch_{dev_hash}"
         dev_hash = entity_entry.unique_id.replace("lumi_switch_", "")
         
-        # Re-initialize the switch object
-        entities_to_add.append(LumiSwitch(hass, entity_entry.original_name, dev_hash))
+        # Instantiate your switch
+        new_switch = LumiSwitch(hass, entity_entry.original_name, dev_hash)
+        entities_to_add.append(new_switch)
     
-    # 3. Add them all at once
     if entities_to_add:
         async_add_entities(entities_to_add, True)
+
+    # 2. DISPATCHER FOR NEW DEVICES
     @callback
-    def add_new_switch(dev_hash):
-        # We define a helper to instantiate the class
-        new_switch = LumiSwitch(hass, f"Lumi Switch {dev_hash}", dev_hash)
+    def add_new_switch(data):
+        # Data is {"hash": dev_hash, "name": dev_name}
+        new_switch = LumiSwitch(hass, data["name"], data["hash"])
         async_add_entities([new_switch], True)
 
     async_dispatcher_connect(hass, DISCOVERY_SIGNAL, add_new_switch)
