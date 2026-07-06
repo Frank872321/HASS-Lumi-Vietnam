@@ -8,38 +8,35 @@ from homeassistant.helpers.dispatcher import dispatcher_send
 from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-
-    # Get the data the user typed in the form
-    host = entry.data["Host"]
-    port = entry.data["Port"]
-    
-    # Store it in hass.data so other files can see it
+    # 1. Setup Data
     hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = {
-        "host": host,
-        "port": port
-    }
+    hass.data[DOMAIN][entry.entry_id] = {"host": entry.data["Host"], "port": entry.data["Port"]}
     
-    # Now forward the setup to switch.py
-    await hass.config_entries.async_forward_entry_setups(entry, ["switch"])
-    # This is the "Traffic Controller"
+    # 2. The Traffic Controller
     async def status_message_received(msg):
         try:
             payload = json.loads(msg.payload)
-            # Based on your status JSON: payload['objects'][0]['data']
             for obj in payload.get("objects", []):
                 for device in obj.get("data", []):
                     dev_hash = device.get("hash")
                     state = device.get("states", {}).get("OnOff", {}).get("on")
                     
-                    if dev_hash is not None and state is not None:
-                        # Shout the news to all switches
-                        dispatcher_send(hass, f"{DOMAIN}_state_update_{dev_hash}", state)
+                    if dev_hash:
+                        # NEW: If the entity doesn't exist, we need to add it 
+                        # This triggers your 'add_new_switch' function in switch.py
+                        if not hass.data[DOMAIN].get(dev_hash):
+                            hass.data[DOMAIN][dev_hash] = True
+                            dispatcher_send(hass, DISCOVERY_SIGNAL, dev_hash)
+                        
+                        # Handle state update
+                        if state is not None:
+                            dispatcher_send(hass, f"{DOMAIN}_state_update_{dev_hash}", state)
         except Exception as e:
             _LOGGER.error(f"Error parsing status: {e}")
 
-    # Subscribe once
+    # 3. Subscribe once
     await mqtt.async_subscribe(hass, "component/dnet-relay/in/status", status_message_received)
     
+    # 4. Single setup forward
     await hass.config_entries.async_forward_entry_setups(entry, ["switch"])
     return True
