@@ -30,8 +30,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     # We search for an entity with the unique_id: "lumi_switch_{dev_hash}"
                     entity_id = registry.async_get_entity_id("switch", DOMAIN, f"lumi_switch_{dev_hash}")
                     
-                    if entity_id is None:
-                        unique_id = f"lumi_switch_{dev_hash}"
+                    unique_id = f"lumi_switch_{dev_hash}"
 
                     # Check if this unique_id exists anywhere in the registry
                     if registry.async_get_entity_id("switch", DOMAIN, unique_id) is None:

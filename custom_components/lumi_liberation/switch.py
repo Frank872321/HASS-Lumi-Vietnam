@@ -38,11 +38,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     er_value = er.async_get(hass)
     stored_entries = er.async_entries_for_config_entry(er_value, entry.entry_id)
 
-    # Tell them to exist
-    for entity in stored_entities:
-        if entity.unique_id and entity.unique_id.startswith("lumi_switch_"):
-            dev_hash = entity.unique_id.replace("lumi_switch_", "")
-            add_new_switch(dev_hash)
+
     return True
 class LumiSwitch(SwitchEntity):
     def __init__(self, hass, name, devid):
@@ -87,6 +83,7 @@ class LumiSwitch(SwitchEntity):
         }
         await mqtt.async_publish(self.hass, "component/hc-zb/control", json.dumps(payload))
         self._attr_is_on = False
+        self.async_write_ha_state()
     async def async_added_to_hass(self):
         # Register the listener for the specific signal: {DOMAIN}_state_update_{zigbee-84...}
         self.async_on_remove(
