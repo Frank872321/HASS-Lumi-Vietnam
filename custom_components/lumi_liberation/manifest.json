@@ -6,7 +6,9 @@
   "documentation": "",
   "issue_tracker": "",
   "dependencies": ["mqtt"],
+  "requirements": ["mqtt"],
   "codeowners": ["@Frank872321"],
   "integration_type": "hub",
-  "iot_class": "local_polling"
+  "iot_class": "local_polling",
+  "zeroconf": ["lumismarthome._tcp.local."]
 }
