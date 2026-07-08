@@ -10,5 +10,5 @@
   "codeowners": ["@Frank872321"],
   "integration_type": "hub",
   "iot_class": "local_polling",
-  "zeroconf": ["lumismarthome._tcp.local."]
+  "zeroconf": ["_lumismarthome._tcp.local."]
 }
