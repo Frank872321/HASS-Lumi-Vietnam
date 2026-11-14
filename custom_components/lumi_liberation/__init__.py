@@ -1,81 +1,130 @@
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
-from .const import DOMAIN, DISCOVERY_SIGNAL
-import json
+from __future__ import annotations
+
 import logging
-from homeassistant.components import mqtt
-from homeassistant.helpers.dispatcher import dispatcher_send
-from homeassistant.helpers import entity_registry as er
+from uuid import uuid4
+
+import paho.mqtt.client as mqtt
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.dispatcher import async_dispatcher_send
+
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.SWITCH]
+PLATFORMS: list[str] = []  # add e.g. ["sensor", "switch"] as you build them
+
+type LumiConfigEntry = ConfigEntry["LumiGateway"]
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Lumi Vietnam from a config entry."""
-    # 1. Setup Data (supporting both lowercase and capitalized keys for safety)
-    hass.data.setdefault(DOMAIN, {})
-    host = entry.data.get("host") or entry.data.get("Host")
-    port = entry.data.get("port") or entry.data.get("Port", 80)
-    
-    hass.data[DOMAIN][entry.entry_id] = {"host": host, "port": port}
+def _signal(entry_id: str, topic: str) -> str:
+    return f"{DOMAIN}_{entry_id}_{topic}"
 
-    # 2. The Traffic Controller
-    async def status_message_received(msg):
-        try:
-            payload = json.loads(msg.payload)
-            registry = er.async_get(hass)
 
-            for obj in payload.get("objects", []):
-                for device in obj.get("data", []):
-                    dev_hash = device.get("hash")
-                    state = device.get("states", {}).get("OnOff", {}).get("on")
-                    device_type = device.get("type")
-                    if device_type == "SWITCH":
-                        if not dev_hash:
-                            continue
+class LumiGateway:
+    """Owns one paho client per config entry."""
 
-                        unique_id = f"lumi_switch_{dev_hash}"
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        self.hass = hass
+        self.entry = entry
+        self.client: mqtt.Client | None = None
+        self.last_payloads: dict[str, str] = {}
 
-                        # Check if this unique_id exists anywhere in the registry
-                        if registry.async_get_entity_id("switch", DOMAIN, unique_id) is None:
-                            # It's a new device! Signal switch.py to create it.
-                            _LOGGER.info("Discovered new device: %s", dev_hash)
-                            dispatcher_send(hass, DISCOVERY_SIGNAL, dev_hash)
+    async def async_start(self) -> None:
+        def _create() -> mqtt.Client:
+            client = mqtt.Client(
+                mqtt.CallbackAPIVersion.VERSION2,
+                client_id=f"ha-lumi-{uuid4().hex[:8]}",
+            )
+            data = self.entry.data
+            if data.get("username"):
+                client.username_pw_set(data["username"], data.get("password"))
+            client.on_connect = self._on_connect
+            client.on_disconnect = self._on_disconnect
+            client.on_message = self._on_message
+            client.reconnect_delay_set(min_delay=5, max_delay=120)
+            client.connect_async(data["host"], data["port"], keepalive=60)
+            client.loop_start()
+            return client
 
-                        # State Logic: Always update the state if we have it
-                        if state is not None:
-                            dispatcher_send(hass, f"{DOMAIN}_state_update_{dev_hash}", state)
-                    else:
-                        pass # TODO: add more support for devices other than switches                     
-        except Exception as e:
-            _LOGGER.error("Error parsing status: %s", e)
+        self.client = await self.hass.async_add_executor_job(_create)
 
-    # 3. Subscribe once to MQTT status topic
-    await mqtt.async_subscribe(hass, "component/dnet-relay/in/status", status_message_received)
+    async def async_stop(self) -> None:
+        def _stop() -> None:
+            if self.client is None:
+                return
+            self.client.loop_stop()
+            self.client.disconnect()
 
-    # 4. CRITICAL: Register the update listener so mDNS IP updates trigger a seamless reload
-    entry.async_on_unload(entry.add_update_listener(async_update_listener))
+        await self.hass.async_add_executor_job(_stop)
+        self.client = None
 
-    # 5. Single setup forward for switch platform
+    # --- paho callbacks: these run on paho's network thread ---
+
+    def _on_connect(
+        self,
+        client: mqtt.Client,
+        userdata: object,
+        flags: mqtt.ConnectFlags,
+        reason_code: mqtt.ReasonCode,
+        properties: mqtt.Properties | None,
+    ) -> None:
+        if reason_code.is_failure:
+            _LOGGER.warning("Lumi %s: connect refused: %s", self.entry.title, reason_code)
+            return
+        _LOGGER.debug("Lumi %s: connected", self.entry.title)
+        # Replace with the actual prefix once you know the topic schema.
+        client.subscribe("#", qos=0)
+
+    def _on_disconnect(
+        self,
+        client: mqtt.Client,
+        userdata: object,
+        flags: mqtt.DisconnectFlags,
+        reason_code: mqtt.ReasonCode,
+        properties: mqtt.Properties | None,
+    ) -> None:
+        _LOGGER.debug("Lumi %s: disconnected (%s)", self.entry.title, reason_code)
+
+    def _on_message(
+        self, client: mqtt.Client, userdata: object, msg: mqtt.MQTTMessage
+    ) -> None:
+        payload = msg.payload.decode(errors="replace")
+        self.last_payloads[msg.topic] = payload
+        # Marshal onto the HA event loop - this thread is NOT the loop.
+        self.hass.loop.call_soon_threadsafe(
+            async_dispatcher_send,
+            self.hass,
+            _signal(self.entry.entry_id, msg.topic),
+            payload,
+        )
+
+    @callback
+    def subscribe(self, callback_fn):
+        """Helper for platforms to register a dispatcher listener."""
+        from homeassistant.helpers.dispatcher import async_dispatcher_connect
+
+        return async_dispatcher_connect(
+            self.hass,
+            _signal(self.entry.entry_id, "#"),  # placeholder
+            callback_fn,
+        )
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: LumiConfigEntry) -> bool:
+    gateway = LumiGateway(hass, entry)
+    await gateway.async_start()
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = gateway
+    entry.runtime_data = gateway
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    
     return True
 
 
-async def async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Handle config entry updates (e.g. mDNS updating the IP address)."""
-    _LOGGER.info("Config entry updated, reloading Lumi integration...")
-    await hass.config_entries.async_reload(entry.entry_id)
-
-
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a config entry cleanly."""
-    # Unload platforms (switches)
-    if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        # Clean up runtime data storage
+async def async_unload_entry(hass: HomeAssistant, entry: LumiConfigEntry) -> bool:
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unload_ok:
+        await entry.runtime_data.async_stop()
         hass.data[DOMAIN].pop(entry.entry_id, None)
-
     return unload_ok
