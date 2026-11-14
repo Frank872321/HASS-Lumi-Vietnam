@@ -2,8 +2,10 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.components.zeroconf import ZeroconfServiceInfo
-from homeassistant.data_entry_flow import FlowResult
+# FIX 1: Import ZeroconfServiceInfo from its new helper location
+from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
+# FIX 2: Use ConfigFlowResult instead of the deprecated FlowResult
+from homeassistant.config_entries import ConfigFlowResult
 
 from .const import DOMAIN
 
@@ -21,7 +23,7 @@ class LumiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle the manual fallback step when adding the integration via UI."""
         errors: dict[str, str] = {}
 
@@ -50,19 +52,20 @@ class LumiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_zeroconf(
         self, discovery_info: ZeroconfServiceInfo
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle zeroconf discovery."""
         host = discovery_info.host
         port = discovery_info.port
         properties = discovery_info.properties
-        
+
         # Use a unique identifier from the device (e.g., MAC or hostname)
         unique_id = properties.get("mac", discovery_info.hostname)
         await self.async_set_unique_id(unique_id)
-        
-        # Automatically updates the config entry IP/port if it changes in the background
+
+        # FIX 3: Prevent the implicit reload on discovery update
         self._abort_if_unique_id_configured(
-            updates={"host": host, "port": port}
+            updates={"host": host, "port": port},
+            reload_on_update=False,
         )
 
         # Store for the confirmation step
@@ -76,7 +79,7 @@ class LumiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_discovery_confirm(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Confirm discovery dialog prompt to the user in the UI."""
         if user_input is not None:
             return self.async_create_entry(
