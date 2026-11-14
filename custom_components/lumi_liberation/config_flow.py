@@ -53,14 +53,10 @@ class LumiConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         properties = discovery_info.properties
 
-        # ip_address is the resolved IP; host is often a .local hostname paho can't resolve
-        host = discovery_info.ip_address or discovery_info.host
-
-        # Advertised port is usually the HTTP port, not MQTT. Trust TXT if it says so,
-        # otherwise force 1883.
+        host = str(discovery_info.ip_address or discovery_info.host)
         port = int(properties.get("mqtt_port", 1883))
 
-        unique_id = properties.get("mac", discovery_info.hostname)
+        unique_id = str(properties.get("mac", discovery_info.hostname))
         await self.async_set_unique_id(unique_id)
         self._abort_if_unique_id_configured(
             updates={"host": host, "port": port},
@@ -69,7 +65,7 @@ class LumiConfigFlow(ConfigFlow, domain=DOMAIN):
 
         self.discovered_host = host
         self.discovered_port = port
-        self.discovered_name = discovery_info.name
+        self.discovered_name = str(discovery_info.name)
         self.context["title_placeholders"] = {"name": self.discovered_name}
         return await self.async_step_discovery_confirm()
 
