@@ -5,7 +5,6 @@ import logging
 import re
 from typing import Any
 
-from homeassistant.components import mqtt
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -15,11 +14,10 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import DOMAIN, DISCOVERY_SIGNAL
+from .const import DISCOVERY_SIGNAL, DOMAIN, TOPIC_COMMAND
 
 _LOGGER = logging.getLogger(__name__)
 
-# devid looks like: zigbee-84:2E:14:FF:FE:88:23:A8-1
 _DEVID_RE = re.compile(r"^(?P<proto>[^-]+)-(?P<mac>[0-9A-Fa-f:]{17,23})-(?P<ep>\d+)$")
 _UNIQUE_PREFIX = "lumi_switch_"
 
@@ -36,30 +34,38 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    known: dict[str, LumiSwitch] = hass.data[DOMAIN].setdefault(entry.entry_id, {})
+    gateway = entry.runtime_data
+    entities: dict[str, LumiSwitch] = {}
 
     @callback
     def _add(devid: str) -> None:
-        if devid in known:
+        if devid in entities:
             return
-        entity = LumiSwitch(devid)
-        known[devid] = entity
+        entity = LumiSwitch(gateway, devid)
+        entities[devid] = entity
         async_add_entities([entity])
 
-    # Rehydrate from registry on restart (device list only; state via RestoreEntity)
+    # Rehydrate registry-known devices first, and seed gateway.known_devices
     registry = er.async_get(hass)
-    for ent in er.async_entries_for_config_entry(registry, entry.entry_id):
-        if ent.domain != "switch" or not ent.unique_id.startswith(_UNIQUE_PREFIX):
+    for reg_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
+        if reg_entry.domain != "switch":
             continue
-        _add(ent.unique_id[len(_UNIQUE_PREFIX):])
+        if not reg_entry.unique_id.startswith(_UNIQUE_PREFIX):
+            continue
+        devid = reg_entry.unique_id[len(_UNIQUE_PREFIX):]
+        gateway.known_devices.add(devid)
+        _add(devid)
 
-    entry.async_on_unload(async_dispatcher_connect(hass, DISCOVERY_SIGNAL, _add))
+    entry.async_on_unload(
+        async_dispatcher_connect(hass, DISCOVERY_SIGNAL, _add)
+    )
 
 
 class LumiSwitch(SwitchEntity, RestoreEntity):
     _attr_should_poll = False
 
-    def __init__(self, devid: str) -> None:
+    def __init__(self, gateway, devid: str) -> None:
+        self._gateway = gateway
         self._devid = devid
         _, self._mac, endpoint = _split_devid(devid)
         self._attr_unique_id = f"{_UNIQUE_PREFIX}{devid}"
@@ -111,11 +117,8 @@ class LumiSwitch(SwitchEntity, RestoreEntity):
             "source": "core",
             "timestamp": 0,
         }
-        await mqtt.async_publish(
-            self.hass, "component/hc-zb/control", json.dumps(payload)
-        )
-        # Optimistic for now — the HC will echo the real state on
-        # component/dnet-relay/in/status and _handle_state_update will correct us.
+        await self._gateway.async_publish(TOPIC_COMMAND, json.dumps(payload))
+        # Optimistic — the HC's status echo will correct us shortly.
         self._attr_is_on = on
         self.async_write_ha_state()
 
