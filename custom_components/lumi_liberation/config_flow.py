@@ -51,16 +51,17 @@ class LumiConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_zeroconf(
         self, discovery_info: ZeroconfServiceInfo
     ) -> ConfigFlowResult:
-        host = discovery_info.host
-        port = discovery_info.port or 1883
         properties = discovery_info.properties
+
+        # ip_address is the resolved IP; host is often a .local hostname paho can't resolve
+        host = discovery_info.ip_address or discovery_info.host
+
+        # Advertised port is usually the HTTP port, not MQTT. Trust TXT if it says so,
+        # otherwise force 1883.
+        port = int(properties.get("mqtt_port", 1883))
 
         unique_id = properties.get("mac", discovery_info.hostname)
         await self.async_set_unique_id(unique_id)
-
-        # If we already know this gateway, update its stored IP/port and bail.
-        # The update listener in __init__.py reloads the entry, which spins up
-        # a new paho client pointed at the new address.
         self._abort_if_unique_id_configured(
             updates={"host": host, "port": port},
             reload_on_update=False,
@@ -69,7 +70,6 @@ class LumiConfigFlow(ConfigFlow, domain=DOMAIN):
         self.discovered_host = host
         self.discovered_port = port
         self.discovered_name = discovery_info.name
-
         self.context["title_placeholders"] = {"name": self.discovered_name}
         return await self.async_step_discovery_confirm()
 
